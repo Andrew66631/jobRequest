@@ -1,0 +1,23 @@
+# Yii2
+/vendor/
+/runtime/
+/web/assets/
+
+# Composer
+/composer.lock
+
+# Docker
+/.docker/
+/.env
+
+# Logs
+/*.log
+
+# IDE
+/.idea/
+/.vscode/
+/*.iml
+
+# OS
+.DS_Store
+Thumbs.db
