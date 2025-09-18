@@ -7,6 +7,7 @@ use yii\rest\Controller;
 use yii\web\Response;
 use app\services\LoanService;
 use app\behaviors\InputValidationBehavior;
+use yii\web\BadRequestHttpException;
 
 class LoanController extends Controller
 {
@@ -24,10 +25,18 @@ class LoanController extends Controller
     {
         $behaviors = parent::behaviors();
 
+        $behaviors['authenticator'] = [
+            'class' => \yii\filters\auth\HttpBearerAuth::class,
+            'optional' => [
+                'options'
+            ],
+        ];
+
         $behaviors['inputValidation'] = [
             'class' => InputValidationBehavior::class,
             'requiredFields' => [
                 'create' => ['user_id', 'amount', 'term'],
+                'process' => ['delay'],
             ],
         ];
 
@@ -44,10 +53,7 @@ class LoanController extends Controller
         $term = $request->post('term');
 
         try {
-            // Валидация данных
             $this->loanService->validateLoanData($userId, $amount, $term);
-
-            // Создание заявки
             $loanRequest = $this->loanService->createLoanRequest($userId, $amount, $term);
 
             Yii::$app->response->statusCode = 201;
@@ -65,8 +71,34 @@ class LoanController extends Controller
         }
     }
 
-    public function actionOptions()
+    public function actionProcess()
     {
-        Yii::$app->response->statusCode = 200;
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $delay = Yii::$app->request->get('delay');
+
+        try {
+            $this->loanService->validateDelay($delay);
+            $processedCount = $this->loanService->processUserRequests((int)$delay);
+
+            Yii::$app->response->statusCode = 200;
+            return [
+                'result' => true,
+                'processed' => $processedCount
+            ];
+
+        } catch (\yii\web\BadRequestHttpException $e) {
+            Yii::$app->response->statusCode = 400;
+            return [
+                'result' => false,
+                'message' => $e->getMessage()
+            ];
+        } catch (\Exception $e) {
+            Yii::$app->response->statusCode = 500;
+            return [
+                'result' => false,
+                'message' => 'Ошибка обработки заявок: ' . $e->getMessage()
+            ];
+        }
     }
 }

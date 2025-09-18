@@ -9,28 +9,17 @@ use yii\web\BadRequestHttpException;
 
 class LoanService
 {
-    /**
-     * @param int $userId
-     * @param float $amount
-     * @param int $term
-     * @return Request
-     * @throws BadRequestHttpException
-     * @throws \yii\db\Exception
-     */
     public function createLoanRequest(int $userId, float $amount, int $term): Request
     {
-        // Проверяем существование пользователя
         $user = User::findOne($userId);
         if (!$user) {
             throw new BadRequestHttpException('Пользователь не найден');
         }
 
-        // Проверяем, что у пользователя нет одобренных заявок
         if ($this->hasApprovedRequests($userId)) {
             throw new BadRequestHttpException('У пользователя есть одобреные заявки');
         }
 
-        // Создаем новую заявку
         $request = new Request();
         $request->user_id = $userId;
         $request->amount = $amount;
@@ -43,10 +32,6 @@ class LoanService
         return $request;
     }
 
-    /**
-     * @param int $userId
-     * @return bool
-     */
     private function hasApprovedRequests(int $userId): bool
     {
         return Request::find()
@@ -54,14 +39,7 @@ class LoanService
             ->exists();
     }
 
-    /**
-     * @param int $userId
-     * @param float $amount
-     * @param int $term
-     * @return void
-     * @throws BadRequestHttpException
-     */
-    public function validateLoanData(int $userId,float $amount, int $term): void
+    public function validateLoanData(int $userId, float $amount, int $term): void
     {
         if (empty($userId) || empty($amount) || empty($term)) {
             throw new BadRequestHttpException('Требуется идентификатор пользователя, сумма и срок.');
@@ -77,6 +55,72 @@ class LoanService
 
         if (!is_numeric($term) || $term <= 0) {
             throw new BadRequestHttpException('Срок должен быть положительным целым числом.');
+        }
+    }
+
+    public function processUserRequests(int $delay): int
+    {
+        if ($delay <= 0) {
+            throw new BadRequestHttpException('Параметр delay должен быть положительным целым числом.');
+        }
+
+        $userId = Yii::$app->user->id;
+        if (!$userId) {
+            throw new BadRequestHttpException('Пользователь не авторизован.');
+        }
+
+        $user = User::findOne($userId);
+        if (!$user) {
+            throw new BadRequestHttpException('Пользователь не найден');
+        }
+
+        $pendingRequests = Request::find()
+            ->where(['user_id' => $userId, 'solution_id' => null])
+            ->all();
+
+        foreach ($pendingRequests as $request) {
+            Yii::$app->queue->push(new \app\jobs\ProcessLoanJob([
+                'requestId' => $request->id,
+                'delay' => $delay
+            ]));
+        }
+
+        return count($pendingRequests);
+    }
+
+    public function processSingleRequest(Request $request, int $delay): void
+    {
+        sleep($delay);
+
+        $hasApproved = Request::find()
+            ->where(['user_id' => $request->user_id, 'solution_id' => Request::SOLUTION_APPROVED])
+            ->andWhere(['!=', 'id', $request->id])
+            ->exists();
+
+        if ($hasApproved) {
+            $request->solution_id = Request::SOLUTION_REJECTED;
+            $request->save(false);
+            return;
+        }
+
+        $random = mt_rand(1, 100);
+        if ($random <= 10) {
+            $request->solution_id = Request::SOLUTION_APPROVED;
+        } else {
+            $request->solution_id = Request::SOLUTION_REJECTED;
+        }
+
+        $request->save(false);
+    }
+
+    public function validateDelay($delay): void
+    {
+        if (empty($delay)) {
+            throw new BadRequestHttpException('Требуется параметр delay.');
+        }
+
+        if (!is_numeric($delay) || $delay <= 0) {
+            throw new BadRequestHttpException('Параметр delay должен быть положительным целым числом.');
         }
     }
 }

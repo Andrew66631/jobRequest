@@ -25,7 +25,10 @@ class InputValidationBehavior extends Behavior
 
         if (isset($this->requiredFields[$action])) {
             foreach ($this->requiredFields[$action] as $field) {
-                if (empty($request->post($field))) {
+                // Проверяем и в GET, и в POST
+                $value = $request->get($field) ?? $request->post($field);
+
+                if (empty($value)) {
                     throw new BadRequestHttpException("Поле '{$field}' обязательно к заполнению");
                 }
             }

@@ -29,7 +29,7 @@ $config = [
             'loginUrl' => null,
         ],
         'errorHandler' => [
-            'errorAction' => 'site\error',
+            'errorAction' => 'site/error',
         ],
         'mailer' => [
             'class' => 'yii\swiftmailer\Mailer',
@@ -45,31 +45,23 @@ $config = [
             ],
         ],
         'db' => $db,
-        'jwt' => [
-            'class' => \sizeg\jwt\Jwt::class,
-            'key' => 'U2VjcmV0SldUMjAyNCEkQF4mKigpXytbXXt9fTo7IjwsPi5',
+        'queue' => [
+            'class' => \yii\queue\db\Queue::class,
+            'db' => 'db',
+            'tableName' => '{{%queue}}',
+            'channel' => 'default',
+            'mutex' => \yii\mutex\FileMutex::class,
         ],
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
-                'test' => 'test/test',
-                [
-                    'class' => 'yii\rest\UrlRule',
-                    'controller' => 'api/auth',
-                    'extraPatterns' => [
-                        'POST login' => 'login',
-                        'POST register' => 'register',
-                    ],
-                ],
-                [
-                    'class' => 'yii\rest\UrlRule',
-                    'controller' => 'api/loan',
-                    'extraPatterns' => [
-                        'POST create' => 'create',
-                        'OPTIONS <action>' => 'options',
-                    ],
-                ],
+                'POST api/auth/login' => 'api/auth/login',
+                'POST api/auth/register' => 'api/auth/register',
+
+                'POST api/loan/create' => 'api/loan/create',
+                'GET api/loan/processor' => 'api/loan/process',
+
             ],
         ],
     ],
@@ -81,14 +73,6 @@ $config = [
             \app\services\LoanService::class => [
                 'class' => \app\services\LoanService::class,
             ],
-        ],
-        'singletons' => [
-            \app\services\UserService::class => function() {
-                return new \app\services\UserService();
-            },
-            \app\services\LoanService::class => function() {
-                return new \app\services\LoanService();
-            },
         ],
     ],
     'params' => $params,

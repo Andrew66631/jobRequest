@@ -38,6 +38,7 @@ JWT Настройки
 
 ```bash
 git clone  - репозиторий
+
 cd jobRequest
 
 docker-compose up -d
@@ -45,8 +46,8 @@ docker-compose up -d
 docker-compose exec php composer install
 
 docker-compose exec php ./yii migrate
-
-5. Проверка работы
+````
+# 5. Проверка работы
 Откройте в браузере: http://localhost
 
 📊 Структура базы данных
@@ -59,63 +60,53 @@ solution - Решения по заявкам (approved/declined)
 
 🔐 API Endpoints
 
-1.Регистрация пользователя
-# URL: POST /api/auth/register
+# 1.Регистрация пользователя
+# URL: POST  http://localhost/api/auth/register
 
-Тело запроса:
+# Тело запроса:
 
+```bash
 {
   "username": "testuser",
   "password": "password123",
   "email": "test@example.com"
-}
-2.Авторизация пользователя
-# URL: POST /api/auth/login
+} 
+```
 
-Тело запроса:
+# 2.Авторизация пользователя
+# URL: POST  http://localhost/api/auth/login
 
+# Тело запроса:
+
+```bash
 {
   "username": "testuser",
   "password": "password123"
 }
-3.Управление заявками на займы
-Подача заявки на займ
-URL: POST /api/loan/create
+```
+# 3.Подача заявки на займ
+# URL: POST  http://localhost/api/loan/create
 
-Заголовки: Authorization: Bearer <jwt_token>
-
-Тело запроса:
+## Заголовки: Authorization: Bearer <токен взять из action login>
+# Тело запроса:
+```bash
 {
   "user_id": 1,
   "amount": 3000,
   "term": 30
 }
+```
+# 4.Обработка заявок на займ
 
-🐛 Тестирование
-Примеры запросов с curl
+## Заголовки: Authorization: Bearer <токен взять из action login>
 
-Регистрация
-curl -X POST http://localhost/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","password":"password123","email":"test@example.com"}'
+## Необходимо запустить воркер
 
-Авторизация
+```bash
+docker-compose exec php php yii queue/listen
+```
 
-curl -X POST http://localhost/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","password":"password123"}'
+## После чего выполнить запрос
+# URL: GET http://localhost/api/loan/processor?delay=5
 
-curl -X POST http://localhost/api/loan/create \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <jwt_token>" \
-  -d '{"user_id":1,"amount":3000,"term":30}'
-
-Валидация заявок на займ:
-Пользователь должен существовать в системе
-
-Сумма займа должна быть положительным числом
-
-Срок займа должен быть положительным целым числом
-
-Важно: Пользователь не должен иметь одобренных заявок
 

@@ -35,10 +35,15 @@ class AuthController extends Controller
 
         $behaviors['authenticator'] = [
             'class' => \yii\filters\auth\HttpBearerAuth::class,
-            'except' => ['login', 'register'],
+            'except' => ['login', 'register', 'options'],
         ];
 
         return $behaviors;
+    }
+
+    public function actionOptions()
+    {
+        Yii::$app->response->statusCode = 200;
     }
 
     public function actionLogin()

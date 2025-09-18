@@ -2,6 +2,8 @@
 
 namespace app\models;
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Yii;
 use yii\behaviors\TimestampBehavior;
 use yii\web\IdentityInterface;
@@ -36,9 +38,11 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
         return static::findOne($id);
     }
 
+
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        return static::findOne(['id' => $token->getClaim('uid')]);
+        $decoded = JWT::decode($token, new Key(Yii::$app->params['jwtSecret'], 'HS256'));
+        return static::findOne(['id' => $decoded->uid]);
     }
 
     public static function findByUsername($username)

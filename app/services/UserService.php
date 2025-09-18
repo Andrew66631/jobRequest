@@ -8,14 +8,7 @@ use yii\web\BadRequestHttpException;
 
 class UserService
 {
-    /**
-     * @param $username
-     * @param $password
-     * @param $email
-     * @return void
-     * @throws BadRequestHttpException
-     */
-    public function validateRegistrationData(string $username, string $password, string $email): BadRequestHttpException
+    public function validateRegistrationData(string $username, string $password, string $email): void
     {
         if (empty($username) || empty($password) || empty($email)) {
             throw new BadRequestHttpException('Требуются имя пользователя, пароль и адрес электронной почты.');
@@ -42,13 +35,6 @@ class UserService
         }
     }
 
-
-    /**
-     * @param $username
-     * @param $password
-     * @return array
-     * @throws BadRequestHttpException
-     */
     public function authenticateUser(string $username, string $password): array
     {
         $user = User::find()->where(['username' => $username])->one();
@@ -63,16 +49,6 @@ class UserService
             'token' => $token
         ];
     }
-
-    /**
-     * @param string $username
-     * @param string $password
-     * @param string $email
-     * @return array
-     * @throws BadRequestHttpException
-     * @throws \yii\base\Exception
-     * @throws \yii\db\Exception
-     */
 
     public function createUser(string $username, string $password, string $email): array
     {
@@ -94,18 +70,14 @@ class UserService
         ];
     }
 
-    /**
-     * @param User $user
-     * @return string
-     */
     private function generateJwt(User $user): string
     {
         $time = time();
-        $key = Yii::$app->jwt->key;
+        $key = 'U2VjcmV0SldUMjAyNCEkQF4mKigpXytbXXt9fTo7IjwsPi5';
 
         $payload = [
-            'iss' => $_SERVER['HTTP_HOST'],
-            'aud' => $_SERVER['HTTP_HOST'],
+            'iss' => $_SERVER['HTTP_HOST'] ?? 'localhost',
+            'aud' => $_SERVER['HTTP_HOST'] ?? 'localhost',
             'iat' => $time,
             'exp' => $time + 3600,
             'uid' => $user->id,
